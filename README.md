@@ -23,7 +23,7 @@ The sketch comes with a `Helper.h` file that you can basically reuse in your own
 * `void setNickname(char *buf);`
   Sets the nickname.
 
-The import part here is that by allowing BLE input, you can manage the burning of the DevEUI quite smoothly on your phone. Scan the QR Code that's on the module:
+The important part here is that by allowing BLE input, you can manage the burning of the DevEUI quite smoothly on your phone. Scan the QR Code that's on the module:
 
 ![QRCode_Reader](QRCode_Reader.jpg)
 
