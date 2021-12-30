@@ -1,12 +1,13 @@
 void hexDump(char *, uint16_t);
 void readEEPROM(char *, uint8_t, uint16_t);
-void setDevEUI();
+void setDevEUI(char *, char *);
 void ble_connect_callback(uint16_t);
 void ble_disconnect_callback(uint16_t, uint8_t);
 void handleBleuartRx();
 void handleCommands();
 void readInfo();
-void setNickname();
+uint16_t readEEPROMString(char *, uint16_t);
+void setNickname(char *);
 
 BLEUart g_BleUart;
 BLEClientDis clientDis; // device information client
@@ -52,18 +53,18 @@ void handleBleuartRx() {
 void handleCommands() {
   if (rawBuf[0] == '/') {
     char c = rawBuf[1];
-    if (c == 'd') setDevEUI();
+    if (c == 'd') setDevEUI(rawBuf + 2, devEUI);
     else if (c == 'r') {
       readInfo();
-    } else if (c == 'n') setNickname();
+    } else if (c == 'n') setNickname(rawBuf + 2);
   }
 }
 
-void setDevEUI() {
+void setDevEUI(char *src, char *dest) {
   uint16_t addr = 0x0000;
-  uint8_t ix, px = strlen(rawBuf + 2);
-  char txtBuf[128];
-  sprintf(txtBuf, "Setting devEUI to: `%s`\n", (rawBuf + 2));
+  uint8_t ix, px = strlen(src + 2);
+  char txtBuf[64];
+  sprintf(txtBuf, "Setting devEUI to: `%s`\n", (src));
   Serial.print(txtBuf);
   if (g_BleUartConnected) g_BleUart.print(txtBuf);
   if (px != 16) {
@@ -72,8 +73,8 @@ void setDevEUI() {
     return;
   }
   ix = 0;
-  for (px = 2; px < 18; px += 2) {
-    char c = rawBuf[px];
+  for (px = 0; px < 16; px += 2) {
+    char c = src[px];
     if (c >= '0' && c <= '9') c = c - '0';
     else if (c >= 'a' && c <= 'f') c = c - 'a' + 10;
     else if (c >= 'A' && c <= 'F') c = c - 'A' + 10;
@@ -83,7 +84,7 @@ void setDevEUI() {
       if (g_BleUartConnected) g_BleUart.print(txtBuf);
       return;
     }
-    char d = rawBuf[px + 1];
+    char d = src[px + 1];
     if (d >= '0' && d <= '9') d = d - '0';
     else if (d >= 'a' && d <= 'f') d = d - 'a' + 10;
     else if (d >= 'A' && d <= 'F') d = d - 'A' + 10;
@@ -95,20 +96,20 @@ void setDevEUI() {
     }
     // shift 4 to make space for new digit, and add the 4 bits of the new digit
     c = (c << 4) | d;
-    devEUI[ix++] = c;
+    dest[ix++] = c;
     i2ceeprom.write(addr++, c);
   }
   Serial.println("Wrote devEUI:");
-  hexDump(devEUI, 8);
+  hexDump(dest, 8);
   if (g_BleUartConnected) g_BleUart.println("Wrote devEUI.");
 }
 
-void setNickname() {
+void setNickname(char *buf) {
   uint8_t ix, px = strlen(rawBuf + 2);
   uint16_t addr = 0x0008;
-  for (ix = 0; ix < px; ix++) i2ceeprom.write(addr++, rawBuf[ix + 2]);
+  for (ix = 0; ix < px; ix++) i2ceeprom.write(addr++, buf[ix + 2]);
   char txtBuf[128];
-  sprintf(txtBuf, "Set nickname to: `%s`\n", (rawBuf + 2));
+  sprintf(txtBuf, "Set nickname to: `%s`\n", (buf + 2));
   Serial.print(txtBuf);
   if (g_BleUartConnected) g_BleUart.print(txtBuf);
 }
@@ -117,12 +118,12 @@ void readEEPROM(char *buf, uint8_t len, uint16_t addr) {
   for (uint8_t ix = 0; ix < len; ix++) buf[ix] = (char)i2ceeprom.read(addr++);
 }
 
-uint16_t readEEPROMString(uint16_t addr) {
+uint16_t readEEPROMString(char *buf, uint16_t addr) {
   char c = 0xFF;
   uint8_t ix = 0;
   while (c != 0) {
     c = (char)i2ceeprom.read(addr++);
-    rawBuf[ix++] = c;
+    buf[ix++] = c;
   }
   return (ix + 1);
 }
@@ -142,7 +143,7 @@ void readInfo() {
   }
   Serial.print("Nickname: ");
   if (g_BleUartConnected) g_BleUart.print("Nickname: ");
-  uint16_t px = readEEPROMString(8);
+  uint16_t px = readEEPROMString(rawBuf, 8);
   Serial.println(rawBuf);
   if (g_BleUartConnected) g_BleUart.println(rawBuf);
 }
