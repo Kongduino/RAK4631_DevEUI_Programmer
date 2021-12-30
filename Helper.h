@@ -5,7 +5,7 @@ void ble_connect_callback(uint16_t);
 void ble_disconnect_callback(uint16_t, uint8_t);
 void handleBleuartRx();
 void handleCommands();
-void readInfo();
+void readInfo(char *, char *);
 uint16_t readEEPROMString(char *, uint16_t);
 void setNickname(char *);
 
@@ -20,6 +20,7 @@ bool g_BleUartConnected = false;
 Adafruit_EEPROM_I2C i2ceeprom;
 
 char devEUI[8] = {0};
+char nickname[33] = {0};
 char rawBuf[256] = {0};
 
 void ble_connect_callback(uint16_t conn_handle) {
@@ -55,14 +56,14 @@ void handleCommands() {
     char c = rawBuf[1];
     if (c == 'd') setDevEUI(rawBuf + 2, devEUI);
     else if (c == 'r') {
-      readInfo();
+      readInfo(devEUI, nickname);
     } else if (c == 'n') setNickname(rawBuf + 2);
   }
 }
 
 void setDevEUI(char *src, char *dest) {
   uint16_t addr = 0x0000;
-  uint8_t ix, px = strlen(src + 2);
+  uint8_t ix, px = strlen(src);
   char txtBuf[64];
   sprintf(txtBuf, "Setting devEUI to: `%s`\n", (src));
   Serial.print(txtBuf);
@@ -128,14 +129,14 @@ uint16_t readEEPROMString(char *buf, uint16_t addr) {
   return (ix + 1);
 }
 
-void readInfo() {
+void readInfo(char *eui, char *buf) {
   Serial.println("DevEUI:");
-  readEEPROM(devEUI, 8, 0);
-  hexDump(devEUI, 8);
+  readEEPROM(eui, 8, 0);
+  hexDump(eui, 8);
   if (g_BleUartConnected) {
     String s = "DevEUI: ";
     for (uint8_t ix = 0; ix < 8; ix++) {
-      char c = devEUI[ix];
+      char c = eui[ix];
       if (c < 16) s = s + "0";
       s = s + String(c, HEX);
     }
@@ -143,9 +144,9 @@ void readInfo() {
   }
   Serial.print("Nickname: ");
   if (g_BleUartConnected) g_BleUart.print("Nickname: ");
-  uint16_t px = readEEPROMString(rawBuf, 8);
-  Serial.println(rawBuf);
-  if (g_BleUartConnected) g_BleUart.println(rawBuf);
+  uint16_t px = readEEPROMString(buf, 8);
+  Serial.println(buf);
+  if (g_BleUartConnected) g_BleUart.println(buf);
 }
 
 void hexDump(char *buf, uint16_t len) {

@@ -58,7 +58,7 @@ void setup() {
   Bluefruit.Advertising.start(0); // 0 = Don't stop advertising after n seconds
   Serial.println("=====================================");
 
-  readInfo();
+  readInfo(devEUI, nickname);
 }
 
 void loop() {

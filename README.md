@@ -16,7 +16,7 @@ The sketch comes with a `Helper.h` file that you can basically reuse in your own
   Read `len` bytes from the EEPRON into `buf`, starting at `addr`.
 * `void setDevEUI(char *src, char *dest);`
   Sets the DevEUI, a 16-char hexadecimal string, to an 8-byte buffer.
-* `void readInfo();`
+* `void readInfo(char *eui, char *buf);`
   Reads the DevEUI and Nickname, and displays them.
 * `uint16_t readEEPROMString(char *buf, uint16_t addr);`
   Reads a zero-terminated string to `buf`.
