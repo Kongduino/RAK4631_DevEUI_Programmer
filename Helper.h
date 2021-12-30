@@ -1,6 +1,8 @@
 void hexDump(char *, uint16_t);
+void initEEPROM();
 void readEEPROM(char *, uint8_t, uint16_t);
 void setDevEUI(char *, char *);
+void initBLE();
 void ble_connect_callback(uint16_t);
 void ble_disconnect_callback(uint16_t, uint8_t);
 void handleBleuartRx();
@@ -8,6 +10,11 @@ void handleCommands();
 void readInfo(char *, char *);
 uint16_t readEEPROMString(char *, uint16_t);
 void setNickname(char *);
+
+#include <bluefruit.h>
+#include <SPI.h>
+#include <Wire.h>
+#include "Adafruit_EEPROM_I2C.h" // Click here to get the library: http://librarymanager/All#Adafruit_EEPROM_I2C
 
 BLEUart g_BleUart;
 BLEClientDis clientDis; // device information client
@@ -58,6 +65,45 @@ void handleCommands() {
     else if (c == 'r') {
       readInfo(devEUI, nickname);
     } else if (c == 'n') setNickname(rawBuf + 2);
+  }
+}
+
+void initBLE() {
+  Bluefruit.configPrphBandwidth(BANDWIDTH_MAX);
+  Bluefruit.configPrphConn(92, BLE_GAP_EVENT_LENGTH_MIN, 16, 16);
+  Bluefruit.begin(1, 0);
+  // Set max power. Accepted values are: -40, -30, -20, -16, -12, -8, -4, 0, 4
+  Bluefruit.setTxPower(4);
+  // Set the BLE device name
+  Bluefruit.setName("RAK_DevEUI_BLE");
+  Bluefruit.Periph.setConnectCallback(ble_connect_callback);
+  Bluefruit.Periph.setDisconnectCallback(ble_disconnect_callback);
+  // Configure and Start BLE Uart Service
+  clientDis.begin();
+  g_BleUart.begin();
+  // Set up and start advertising
+  // Advertising packet
+  Bluefruit.Advertising.addFlags(BLE_GAP_ADV_FLAGS_LE_ONLY_GENERAL_DISC_MODE);
+  Bluefruit.Advertising.addTxPower();
+  Bluefruit.Advertising.addName();
+  Bluefruit.Advertising.restartOnDisconnect(true);
+  Bluefruit.Advertising.setInterval(32, 244); // in unit of 0.625 ms
+  Bluefruit.Advertising.setFastTimeout(30); // number of seconds in fast mode
+  Bluefruit.Advertising.start(0); // 0 = Don't stop advertising after n seconds
+}
+
+void initEEPROM() {
+  pinMode(WB_IO2, INPUT_PULLUP); // EPD
+  digitalWrite(WB_IO2, HIGH);
+  delay(300);
+  if (i2ceeprom.begin(EEPROM_ADDR)) {
+    // you can stick the new i2c addr in here, e.g. begin(0x51);
+    Serial.println("Found I2C EEPROM");
+  } else {
+    Serial.println("I2C EEPROM not identified ... check your connections?\r\n");
+    while (1) {
+      delay(10);
+    }
   }
 }
 
